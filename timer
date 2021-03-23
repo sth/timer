@@ -77,7 +77,8 @@ os.setsid()
 import time
 delay = targettime - datetime.datetime.now()
 if delay > datetime.timedelta(seconds=0):
-	time.sleep(delay.total_seconds())
-subprocess.run(['notify-send', '-u', 'critical', args.message])
+    time.sleep(delay.total_seconds())
+tmsg = '%s | %s' % (targettime.strftime('%H:%M'), args.message)
+subprocess.run(['notify-send', '-u', 'critical', tmsg])
 
 #subprocess.run(['./timer-at', target.isoformat(), args.message], stdout=open('/dev/null', 'w'))
