@@ -4,8 +4,11 @@ import argparse
 
 ap = argparse.ArgumentParser()
 ap.add_argument('time')
-ap.add_argument('message')
+ap.add_argument('message', nargs='*', default='Timer')
 args = ap.parse_args()
+
+if isinstance(args.message, list):
+    args.message = ' '.join(args.message)
 
 # "time" can be:
 # A fixed time (in the next 24 hours):
