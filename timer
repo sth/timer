@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+
+import argparse
+
+ap = argparse.ArgumentParser()
+ap.add_argument('time')
+ap.add_argument('message')
+args = ap.parse_args()
+
+# "time" can be:
+# A fixed time (in the next 24 hours):
+#   20:15
+#   20:15:03
+#
+# A time span
+#   10min
+#   10m
+#   15s
+#   1h10m30s
+#   3d
+
+import re, datetime, subprocess
+
+re_date = r'(?P<date>(?:\d\d\d\d-)?\d\d-\d\d)'
+re_time = r'(?P<time>\d\d:\d\d(?::\d\d)?)'
+re_intervalls = r'(?P<intervalls>(\d+(?:[smhd]|min|))+)'
+re_timespec = '(?:' + re_intervalls + '|' + re_time + ')'
+
+def parse_delay(s):
+    mo = re.search('^' + re_timespec + '$', s)
+    if mo is None:
+        raise ValueError("not parsable")
+    g_time = mo.group('time')
+    g_intervalls = mo.group('intervalls')
+    if g_time:
+        try:
+            t = datetime.datetime.strptime(g_time, '%H:%M').time()
+        except ValueError:
+            t = datetime.datetime.strptime(g_time, '%H:%M:%S').time()
+        d = datetime.date.today()
+        target = datetime.datetime.combine(d, t)
+        if target < datetime.datetime.now():
+            target = datetime.datetime.combine(d + datetime.timedelta(days=1), t)
+        return target
+    elif g_intervalls:
+        target = datetime.datetime.now()
+        for inter in re.split(r'(\d+[^\d]*)', g_intervalls):
+            if inter == '':
+                continue
+            parts = re.split(r'(\d+)', inter)
+            if parts and parts[0] == '':
+                del parts[0]
+            num = int(parts[0])
+            unit = parts[1] if len(parts) > 1 else 'm'
+            if unit in ('s',):
+                target += datetime.timedelta(seconds=num)
+            elif unit in ('m', 'min'):
+                target += datetime.timedelta(minutes=num)
+            elif unit in ('h',):
+                target += datetime.timedelta(hours=num)
+            elif unit in ('d',):
+                target += datetime.timedelta(days=num)
+            else:
+                raise ValueError("unknown intervall unit")
+        return target
+    else:
+        raise ValueError("parse error")
+
+targettime = parse_delay(args.time)
+
+# Fork and daemonize
+import os, sys
+if os.fork() != 0:
+    sys.exit(0)
+os.setsid()
+
+import time
+delay = targettime - datetime.datetime.now()
+if delay > datetime.timedelta(seconds=0):
+	time.sleep(delay.total_seconds())
+subprocess.run(['notify-send', '-u', 'critical', args.message])
+
+#subprocess.run(['./timer-at', target.isoformat(), args.message], stdout=open('/dev/null', 'w'))
