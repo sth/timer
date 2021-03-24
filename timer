@@ -24,30 +24,34 @@ if isinstance(args.message, list):
 
 import re, datetime, subprocess
 
-re_date = r'(?P<date>(?:\d\d\d\d-)?\d\d-\d\d)'
-re_time = r'(?P<time>\d\d:\d\d(?::\d\d)?)'
-re_intervalls = r'(?P<intervalls>(\d+(?:[smhd]|min|))+)'
+re_date = r'(?:\d\d\d\d-)?\d\d-\d\d'
+re_time = r'\d\d?:\d\d(?::\d\d)?'
+re_intervalls = r'(?:\d+(?:[smhd]|min|) *)+'
 re_timespec = '(?:' + re_intervalls + '|' + re_time + ')'
 
 def parse_delay(s):
-    mo = re.search('^' + re_timespec + '$', s)
-    if mo is None:
-        raise ValueError("not parsable")
-    g_time = mo.group('time')
-    g_intervalls = mo.group('intervalls')
-    if g_time:
-        try:
-            t = datetime.datetime.strptime(g_time, '%H:%M').time()
-        except ValueError:
-            t = datetime.datetime.strptime(g_time, '%H:%M:%S').time()
+    mo_time = re.search('^' + re_time + '$', s)
+    mo_intervalls = re.search('^' + re_intervalls + '$', s)
+
+    if mo_time is not None:
+        tstr = mo_time.group()
+        if len(tstr) == 4:
+            tstr = '0' + tstr
+        if len(tstr) == 7:
+            tstr = '0' + tstr
+
+        if len(tstr) == 5:
+            t = datetime.datetime.strptime(mo_time.group(), '%H:%M').time()
+        elif len(tstr) == 8:
+            t = datetime.datetime.strptime(mo_time.group(), '%H:%M:%S').time()
         d = datetime.date.today()
         target = datetime.datetime.combine(d, t)
         if target < datetime.datetime.now():
             target = datetime.datetime.combine(d + datetime.timedelta(days=1), t)
         return target
-    elif g_intervalls:
+    elif mo_intervalls is not None:
         target = datetime.datetime.now()
-        for inter in re.split(r'(\d+[^\d]*)', g_intervalls):
+        for inter in re.split(r'(\d+[^\d]*)', mo_intervalls.group()):
             if inter == '':
                 continue
             parts = re.split(r'(\d+)', inter)
@@ -83,5 +87,3 @@ if delay > datetime.timedelta(seconds=0):
     time.sleep(delay.total_seconds())
 tmsg = '%s | %s' % (targettime.strftime('%H:%M'), args.message)
 subprocess.run(['notify-send', '-u', 'critical', tmsg])
-
-#subprocess.run(['./timer-at', target.isoformat(), args.message], stdout=open('/dev/null', 'w'))
