@@ -3,6 +3,7 @@
 import argparse
 
 ap = argparse.ArgumentParser()
+ap.add_argument('--configfile')
 ap.add_argument('time')
 ap.add_argument('message', nargs='*', default='Timer')
 args = ap.parse_args()
@@ -22,7 +23,7 @@ if isinstance(args.message, list):
 #   1h10m30s
 #   3d
 
-import re, datetime, subprocess
+import re, datetime, subprocess, configparser, shlex, os.path
 
 re_date = r'(?:\d\d\d\d-)?\d\d-\d\d'
 re_time = r'\d\d?:\d\d(?::\d\d)?'
@@ -75,6 +76,14 @@ def parse_delay(s):
 
 targettime = parse_delay(args.time)
 
+conf = configparser.RawConfigParser()
+conf.read(['/etc/timer.conf', os.path.expanduser('~/.config/timer.conf')])
+if args.configfile is not None:
+    conf.read(args.configfile)
+message_fmt = conf.get('timer', 'message', fallback='[{datetime:%H:%M}] | {message}')
+notify_fmt = conf.get('timer', 'notify', fallback='notify-send -u critical "{message}"')
+notify_cmd_fmt = shlex.split(notify_fmt)
+
 # Fork and daemonize
 import os, sys
 if os.fork() != 0:
@@ -85,5 +94,5 @@ import time
 delay = targettime - datetime.datetime.now()
 if delay > datetime.timedelta(seconds=0):
     time.sleep(delay.total_seconds())
-tmsg = '%s | %s' % (targettime.strftime('%H:%M'), args.message)
-subprocess.run(['notify-send', '-u', 'critical', tmsg])
+message = message_fmt.format(datetime=targettime, message=args.message)
+subprocess.run([arg.format(message=message) for arg in notify_cmd_fmt])
