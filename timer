@@ -3,6 +3,7 @@
 import argparse
 
 ap = argparse.ArgumentParser()
+ap.add_argument('--quiet', '-q', action='store_true')
 ap.add_argument('--configfile')
 ap.add_argument('time')
 ap.add_argument('message', nargs='*', default='Timer')
@@ -83,6 +84,10 @@ if args.configfile is not None:
 message_fmt = conf.get('timer', 'message', fallback='[{datetime:%H:%M}] | {message}')
 notify_fmt = conf.get('timer', 'notify', fallback='notify-send -u critical "{message}"')
 notify_cmd_fmt = shlex.split(notify_fmt)
+
+if not args.quiet:
+    print("scheduled for {datetime:%H:%M}".format(datetime=targettime))
+
 
 # Fork and daemonize
 import os, sys
