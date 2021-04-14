@@ -24,7 +24,7 @@ if isinstance(args.message, list):
 #   1h10m30s
 #   3d
 
-import re, datetime, subprocess, configparser, shlex, os.path
+import re, datetime, subprocess, configparser, shlex, os.path, sys
 
 re_date = r'(?:\d\d\d\d-)?\d\d-\d\d'
 re_time = r'\d\d?:\d\d(?::\d\d)?'
@@ -70,12 +70,16 @@ def parse_delay(s):
             elif unit in ('d',):
                 target += datetime.timedelta(days=num)
             else:
-                raise ValueError("unknown intervall unit")
+                raise ValueError("unknown interval unit: %s" % unit)
         return target
     else:
         raise ValueError("parse error")
 
-targettime = parse_delay(args.time)
+try:
+    targettime = parse_delay(args.time)
+except ValueError as err:
+    print("invalid target time value: %s" % err, file=sys.stderr)
+    sys.exit(1)
 
 conf = configparser.RawConfigParser()
 conf.read(['/etc/timer.conf', os.path.expanduser('~/.config/timer.conf')])
@@ -83,7 +87,23 @@ if args.configfile is not None:
     conf.read(args.configfile)
 message_fmt = conf.get('timer', 'message', fallback='[{datetime:%H:%M}] | {message}')
 notify_fmt = conf.get('timer', 'notify', fallback='notify-send -u critical "{message}"')
-notify_cmd_fmt = shlex.split(notify_fmt)
+
+try:
+    notify_cmd_fmt = shlex.split(notify_fmt)
+except ValueError as err:
+    print("error in 'notify' configuration: %s: %s" % (err, notify_fmt), file=sys.stderr)
+    sys.exit(1)
+
+try:
+    message = message_fmt.format(datetime=targettime, message=args.message)
+except ValueError as err:
+    print("error in 'message' configuration: %s: %s" % (err, message_fmt), file=sys.stderr)
+    sys.exit(1)
+try:
+    notify_cmd = [arg.format(message=message) for arg in notify_cmd_fmt]
+except ValueError as err:
+    print("error in 'notify' configuration: %s: %s" % (err, notify_cmd_fmt), file=sys.stderr)
+    sys.exit(1)
 
 if not args.quiet:
     print("scheduled for {datetime:%H:%M}".format(datetime=targettime))
@@ -99,5 +119,4 @@ import time
 delay = targettime - datetime.datetime.now()
 if delay > datetime.timedelta(seconds=0):
     time.sleep(delay.total_seconds())
-message = message_fmt.format(datetime=targettime, message=args.message)
-subprocess.run([arg.format(message=message) for arg in notify_cmd_fmt])
+subprocess.run(notify_cmd)
