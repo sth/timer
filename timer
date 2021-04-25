@@ -100,7 +100,7 @@ except ValueError as err:
     print("error in 'message' configuration: %s: %s" % (err, notifytext_fmt), file=sys.stderr)
     sys.exit(1)
 try:
-    notifycmd = [arg.format(notifytext=notifytext, notifytime=notifytime) for arg in notifycmd_fmt]
+    notifycmd = [arg.format(notifytext=notifytext, notifytime=notifytime, message=args.message) for arg in notifycmd_fmt]
 except ValueError as err:
     print("error in 'notify' configuration: %s: %s" % (err, notifycmd_fmt), file=sys.stderr)
     sys.exit(1)
