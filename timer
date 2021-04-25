@@ -28,7 +28,7 @@ import re, datetime, subprocess, configparser, shlex, os.path, sys
 
 re_date = r'(?:\d\d\d\d-)?\d\d-\d\d'
 re_time = r'\d\d?:\d\d(?::\d\d)?'
-re_intervalls = r'(?:\d+(?:[smhd]|min|) *)+'
+re_intervalls = r'(?:\d+(?:[smhd]|min|ms|) *)+'
 re_timespec = '(?:' + re_intervalls + '|' + re_time + ')'
 
 def parse_delay(s):
@@ -61,7 +61,9 @@ def parse_delay(s):
                 del parts[0]
             num = int(parts[0])
             unit = parts[1] if len(parts) > 1 else 'm'
-            if unit in ('s',):
+            if unit in ('ms',):
+                target += datetime.timedelta(seconds=num/1000.0)
+            elif unit in ('s',):
                 target += datetime.timedelta(seconds=num)
             elif unit in ('m', 'min'):
                 target += datetime.timedelta(minutes=num)
