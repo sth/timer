@@ -119,4 +119,8 @@ import time
 delay = targettime - datetime.datetime.now()
 if delay > datetime.timedelta(seconds=0):
     time.sleep(delay.total_seconds())
-subprocess.run(notify_cmd)
+try:
+    subprocess.run(notify_cmd)
+except Exception as err:
+    print("failed to run 'notify' command: %s" % err, file=sys.stderr)
+    sys.exit(1)
