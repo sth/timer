@@ -1,10 +1,12 @@
 # Simple notifications
 
+Command line command to easily show a notification after a specified time
+
 ## Examples
 
     timer 15m Close bathroom window
     timer 3m30s Tea ready
-	 timer 11:30 Meeting
+    timer 11:30 Meeting
 
 ## Dependencies
 
@@ -64,7 +66,7 @@ string, containing the timer message and a `time` datetime value containing
 the time of the notification. The default is:
 
     [timer]
-	 command = notify-send -u critical "{text}"
+    command = notify-send -u critical "{text}"
 
 ### text
 
