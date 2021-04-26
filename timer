@@ -82,7 +82,7 @@ def parse_delay(s):
         raise ValueError("parse error")
 
 try:
-    notifytime = parse_delay(args.time)
+    notify_time = parse_delay(args.time)
 except ValueError as err:
     print("invalid target time value: %s" % err, file=sys.stderr)
     sys.exit(1)
@@ -91,28 +91,28 @@ conf = configparser.RawConfigParser()
 conf.read(['/etc/timer.conf', os.path.expanduser('~/.config/timer.conf')])
 if args.configfile is not None:
     conf.read(args.configfile)
-notifytext_fmt = conf.get('timer', 'message', fallback='[{notifytime:%H:%M}] | {message}')
-notifycmd_fmtstr = conf.get('timer', 'notify', fallback='notify-send -u critical "{notifytext}"')
+notify_text_fmt = conf.get('timer', 'text', fallback='[{time:%H:%M}] | {message}')
+notify_command_fmtstr = conf.get('timer', 'command', fallback='notify-send -u critical "{text}"')
 
 try:
-    notifycmd_fmt = shlex.split(notifycmd_fmtstr)
+    notify_command_fmt = shlex.split(notify_command_fmtstr)
 except ValueError as err:
-    print("error in 'notify' configuration: %s: %s" % (err, notifycmd_fmtstr), file=sys.stderr)
+    print("error in 'command' configuration: %s: %s" % (err, notify_command_fmtstr), file=sys.stderr)
     sys.exit(1)
 
 try:
-    notifytext = notifytext_fmt.format(notifytime=notifytime, message=args.message)
+    notify_text = notify_text_fmt.format(time=notify_time, message=args.message)
 except ValueError as err:
-    print("error in 'message' configuration: %s: %s" % (err, notifytext_fmt), file=sys.stderr)
+    print("error in 'text' configuration: %s: %s" % (err, notify_text_fmt), file=sys.stderr)
     sys.exit(1)
 try:
-    notifycmd = [arg.format(notifytext=notifytext, notifytime=notifytime, message=args.message) for arg in notifycmd_fmt]
+    notify_command = [arg.format(text=notify_text, time=notify_time, message=args.message) for arg in notify_command_fmt]
 except ValueError as err:
-    print("error in 'notify' configuration: %s: %s" % (err, notifycmd_fmt), file=sys.stderr)
+    print("error in 'command' configuration: %s: %s" % (err, notify_command_fmt), file=sys.stderr)
     sys.exit(1)
 
 if not args.quiet:
-    print("scheduled for {notifytime:%H:%M}".format(notifytime=notifytime))
+    print("scheduled for {time:%H:%M}".format(time=notify_time))
 
 
 # Fork and daemonize
@@ -122,11 +122,11 @@ if os.fork() != 0:
 os.setsid()
 
 import time
-delay = notifytime - datetime.datetime.now()
+delay = notify_time - datetime.datetime.now()
 if delay > datetime.timedelta(seconds=0):
     time.sleep(delay.total_seconds())
 try:
-    subprocess.run(notifycmd)
+    subprocess.run(notify_command)
 except Exception as err:
     print("failed to run 'notify' command: %s" % err, file=sys.stderr)
     sys.exit(1)

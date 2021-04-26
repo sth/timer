@@ -52,30 +52,30 @@ uses a [ini-file structure][py-ini] and expects the config options in a `[timer]
 section:
  
     [timer]
-    notifycmd = notify-send -u critical "{notifytext}"
-    notifytext = [{notifytime:%H:%M}] | {message}
+    text = [{time:%H:%M}] | {message}
+    command = notify-send -u critical "{text}"
 
-### notifycmd
+### command
 
-The `notifycmd` option specifies the command that is used to display the
+The `command` option specifies the command that is used to display the
 notification when the timer expires. The command can [use shell-like quotes][py-shlex].
-Python [`format()`][py-format] is used to substitute a `notifytext`
-string, containing the timer message and a `notifytime` datetime value containing
+Python [`format()`][py-format] is used to substitute a `text`
+string, containing the timer message and a `time` datetime value containing
 the time of the notification. The default is:
 
     [timer]
-	 notifycmd = notify-send -u critical "{notifytext}"
+	 command = notify-send -u critical "{text}"
 
-### notifytext
+### text
 
-The `notifytext` option can be used to adjust formatting of the timer message text.
+The `text` option can be used to adjust formatting of the timer message text.
 Python's [`format()`][py-format] is used to substitute a `message` string
 (the timer message specified on the command line when the timer was started)
-and `notifytime`, a Python datetime value of the notification time.
+and `time`, a Python datetime value of the notification time.
 The default is:
 
     [timer]
-    notifytext = [{notifytime:%H:%M}] | {message}
+    text = [{time:%H:%M}] | {message}
 
 
  [py-init]: https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
