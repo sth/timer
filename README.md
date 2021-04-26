@@ -4,6 +4,7 @@
 
     timer 15m Close bathroom window
     timer 3m30s Tea ready
+	 timer 11:30 Meeting
 
 ## Dependencies
 
@@ -18,6 +19,30 @@ On Ubuntu or Debian you would make sure those are available with
 
 By default `notify-send` is used to display desktop notifications, but a
 different notification program can be configured.
+
+## Usage
+
+### Parameters
+
+The first parameter is parsed as a time value. This can be either:
+
+- A time intervall, e.g. `15m` or `1h15m10s`.
+  - `d`: days
+  - `h`: hours
+  - `m`, `min`, or no suffix: minutes
+  - `s`: seconds
+  - `ms`: milliseconds
+- A fixed time, like `11:30` or `12:15:30`
+
+Any further parameters are used as a notification message that is displayed once
+the timer expires.
+
+### Options
+
+Additional options can be passed:
+
+- `--quiet`, `-q`: Suppress the "sheduled at ..." message
+- `--configfile=FILENAME`: Use a non-standard config file
 
 ## Configuration
 
