@@ -3,10 +3,14 @@
 import argparse
 
 ap = argparse.ArgumentParser()
-ap.add_argument('--quiet', '-q', action='store_true')
-ap.add_argument('--configfile')
-ap.add_argument('time')
-ap.add_argument('message', nargs='*', default='Timer')
+ap.add_argument('--quiet', '-q', action='store_true',
+        help="Don't show shedule message")
+ap.add_argument('--configfile',
+        help="Use this config file")
+ap.add_argument('time',
+        help="Time intervall or fixed target time. For example '1h20m'")
+ap.add_argument('message', nargs='*', default='Timer',
+        help="Notification message to show")
 args = ap.parse_args()
 
 if isinstance(args.message, list):
