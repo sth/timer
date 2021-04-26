@@ -36,6 +36,8 @@ The first parameter is parsed as a time value. This can be either:
   - `ms`: milliseconds
 - A fixed time, like `11:30` or `12:15:30`
 
+Just a number without any suffix is interpreted as minutes.
+
 Any further parameters are used as a notification message that is displayed once
 the timer expires.
 
