@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import typing as t
+
+class Args(t.Protocol):
+    quiet: bool
+    configfile: t.Optional[str]
+    time: str
+    message: t.Union[list[str], str]
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--quiet', '-q', action='store_true',
@@ -11,7 +18,7 @@ ap.add_argument('time',
         help="Time intervall or fixed target time. For example '1h20m'")
 ap.add_argument('message', nargs='*', default='Timer',
         help="Notification message to show")
-args = ap.parse_args()
+args = t.cast(Args, ap.parse_args())
 
 if isinstance(args.message, list):
     args.message = ' '.join(args.message)
@@ -35,7 +42,7 @@ re_time = r'\d\d?:\d\d(?::\d\d)?'
 re_intervalls = r'(?:\d+(?:[smhd]|min|ms|) *)+'
 re_timespec = '(?:' + re_intervalls + '|' + re_time + ')'
 
-def parse_delay(s):
+def parse_delay(s: str) -> datetime.datetime:
     mo_time = re.search('^' + re_time + '$', s)
     mo_intervalls = re.search('^' + re_intervalls + '$', s)
 
