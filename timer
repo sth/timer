@@ -3,25 +3,25 @@
 import argparse
 import typing as t
 
+
 class Args(t.Protocol):
     quiet: bool
     configfile: t.Optional[str]
     time: str
     message: t.Union[list[str], str]
 
+
 ap = argparse.ArgumentParser()
-ap.add_argument('--quiet', '-q', action='store_true',
-        help="Don't show shedule message")
-ap.add_argument('--configfile',
-        help="Use this config file")
-ap.add_argument('time',
-        help="Time intervall or fixed target time. For example '1h20m'")
-ap.add_argument('message', nargs='*', default='Timer',
-        help="Notification message to show")
+ap.add_argument("--quiet", "-q", action="store_true", help="Don't show shedule message")
+ap.add_argument("--configfile", help="Use this config file")
+ap.add_argument("time", help="Time intervall or fixed target time. For example '1h20m'")
+ap.add_argument(
+    "message", nargs="*", default="Timer", help="Notification message to show"
+)
 args = t.cast(Args, ap.parse_args())
 
 if isinstance(args.message, list):
-    args.message = ' '.join(args.message)
+    args.message = " ".join(args.message)
 
 # "time" can be:
 # A fixed time (in the next 24 hours):
@@ -37,26 +37,27 @@ if isinstance(args.message, list):
 
 import re, datetime, subprocess, configparser, shlex, os.path, sys
 
-re_date = r'(?:\d\d\d\d-)?\d\d-\d\d'
-re_time = r'\d\d?:\d\d(?::\d\d)?'
-re_intervalls = r'(?:\d+(?:[smhd]|min|ms|) *)+'
-re_timespec = '(?:' + re_intervalls + '|' + re_time + ')'
+re_date = r"(?:\d\d\d\d-)?\d\d-\d\d"
+re_time = r"\d\d?:\d\d(?::\d\d)?"
+re_intervalls = r"(?:\d+(?:[smhd]|min|ms|) *)+"
+re_timespec = "(?:" + re_intervalls + "|" + re_time + ")"
+
 
 def parse_delay(s: str) -> datetime.datetime:
-    mo_time = re.search('^' + re_time + '$', s)
-    mo_intervalls = re.search('^' + re_intervalls + '$', s)
+    mo_time = re.search("^" + re_time + "$", s)
+    mo_intervalls = re.search("^" + re_intervalls + "$", s)
 
     if mo_time is not None:
         tstr = mo_time.group()
         if len(tstr) == 4:
-            tstr = '0' + tstr
+            tstr = "0" + tstr
         if len(tstr) == 7:
-            tstr = '0' + tstr
+            tstr = "0" + tstr
 
         if len(tstr) == 5:
-            t = datetime.datetime.strptime(mo_time.group(), '%H:%M').time()
+            t = datetime.datetime.strptime(mo_time.group(), "%H:%M").time()
         elif len(tstr) == 8:
-            t = datetime.datetime.strptime(mo_time.group(), '%H:%M:%S').time()
+            t = datetime.datetime.strptime(mo_time.group(), "%H:%M:%S").time()
         d = datetime.date.today()
         target = datetime.datetime.combine(d, t)
         if target < datetime.datetime.now():
@@ -64,29 +65,30 @@ def parse_delay(s: str) -> datetime.datetime:
         return target
     elif mo_intervalls is not None:
         target = datetime.datetime.now()
-        for inter in re.split(r'(\d+[^\d]*)', mo_intervalls.group()):
-            if inter == '':
+        for inter in re.split(r"(\d+[^\d]*)", mo_intervalls.group()):
+            if inter == "":
                 continue
-            parts = re.split(r'(\d+)', inter)
-            if parts and parts[0] == '':
+            parts = re.split(r"(\d+)", inter)
+            if parts and parts[0] == "":
                 del parts[0]
             num = int(parts[0])
-            unit = parts[1] if len(parts) > 1 else 'm'
-            if unit in ('ms',):
-                target += datetime.timedelta(seconds=num/1000.0)
-            elif unit in ('s',):
+            unit = parts[1] if len(parts) > 1 else "m"
+            if unit in ("ms",):
+                target += datetime.timedelta(seconds=num / 1000.0)
+            elif unit in ("s",):
                 target += datetime.timedelta(seconds=num)
-            elif unit in ('m', 'min'):
+            elif unit in ("m", "min"):
                 target += datetime.timedelta(minutes=num)
-            elif unit in ('h',):
+            elif unit in ("h",):
                 target += datetime.timedelta(hours=num)
-            elif unit in ('d',):
+            elif unit in ("d",):
                 target += datetime.timedelta(days=num)
             else:
                 raise ValueError("unknown interval unit: %s" % unit)
         return target
     else:
         raise ValueError("parse error")
+
 
 try:
     notify_time = parse_delay(args.time)
@@ -95,27 +97,41 @@ except ValueError as err:
     sys.exit(1)
 
 conf = configparser.RawConfigParser()
-conf.read(['/etc/timer.conf', os.path.expanduser('~/.config/timer.conf')])
+conf.read(["/etc/timer.conf", os.path.expanduser("~/.config/timer.conf")])
 if args.configfile is not None:
     conf.read(args.configfile)
-notify_text_fmt = conf.get('timer', 'text', fallback='[{time:%H:%M}] | {message}')
-notify_command_fmtstr = conf.get('timer', 'command', fallback='notify-send -u critical "{text}"')
+notify_text_fmt = conf.get("timer", "text", fallback="[{time:%H:%M}] | {message}")
+notify_command_fmtstr = conf.get(
+    "timer", "command", fallback='notify-send -u critical "{text}"'
+)
 
 try:
     notify_command_fmt = shlex.split(notify_command_fmtstr)
 except ValueError as err:
-    print("error in 'command' configuration: %s: %s" % (err, notify_command_fmtstr), file=sys.stderr)
+    print(
+        "error in 'command' configuration: %s: %s" % (err, notify_command_fmtstr),
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 try:
     notify_text = notify_text_fmt.format(time=notify_time, message=args.message)
 except ValueError as err:
-    print("error in 'text' configuration: %s: %s" % (err, notify_text_fmt), file=sys.stderr)
+    print(
+        "error in 'text' configuration: %s: %s" % (err, notify_text_fmt),
+        file=sys.stderr,
+    )
     sys.exit(1)
 try:
-    notify_command = [arg.format(text=notify_text, time=notify_time, message=args.message) for arg in notify_command_fmt]
+    notify_command = [
+        arg.format(text=notify_text, time=notify_time, message=args.message)
+        for arg in notify_command_fmt
+    ]
 except ValueError as err:
-    print("error in 'command' configuration: %s: %s" % (err, notify_command_fmt), file=sys.stderr)
+    print(
+        "error in 'command' configuration: %s: %s" % (err, notify_command_fmt),
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 if not args.quiet:
@@ -124,11 +140,13 @@ if not args.quiet:
 
 # Fork and daemonize
 import os, sys
+
 if os.fork() != 0:
     sys.exit(0)
 os.setsid()
 
 import time
+
 delay = notify_time - datetime.datetime.now()
 if delay > datetime.timedelta(seconds=0):
     time.sleep(delay.total_seconds())
