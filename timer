@@ -6,6 +6,7 @@ import typing as t
 
 class Args(t.Protocol):
     quiet: bool
+    foreground: bool
     configfile: t.Optional[str]
     time: str
     message: t.Union[list[str], str]
@@ -13,6 +14,7 @@ class Args(t.Protocol):
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--quiet", "-q", action="store_true", help="Don't show shedule message")
+ap.add_argument("--foreground", "-f", action="store_true", help="Don't background process")
 ap.add_argument("--configfile", help="Use this config file")
 ap.add_argument("time", help="Time intervall or fixed target time. For example '1h20m'")
 ap.add_argument(
@@ -139,11 +141,12 @@ if not args.quiet:
 
 
 # Fork and daemonize
-import os, sys
+if not args.foreground:
+    import os, sys
 
-if os.fork() != 0:
-    sys.exit(0)
-os.setsid()
+    if os.fork() != 0:
+        sys.exit(0)
+    os.setsid()
 
 import time
 
