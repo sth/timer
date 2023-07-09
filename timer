@@ -37,7 +37,7 @@ if isinstance(args.message, list):
 #   1h10m30s
 #   3d
 
-import re, datetime, subprocess, configparser, shlex, os.path, sys
+import re, datetime, time, subprocess, configparser, shlex, os.path, sys
 
 re_date = r"(?:\d\d\d\d-)?\d\d-\d\d"
 re_time = r"\d\d?:\d\d(?::\d\d)?"
@@ -90,6 +90,44 @@ def parse_delay(s: str) -> datetime.datetime:
         return target
     else:
         raise ValueError("parse error")
+
+
+def sleep_until(target_time):
+    # Sleep until a certain time.
+    # Using time.sleep() has pitfalls:
+    # - calls to time.sleep() return early on signals
+    # - calls to time.sleep() continue sleeping past the desired time
+    #   if the computer was in standy mode during the sleep. (It sleeps
+    #   for a certain *computer run time*, not *real time*).
+    # We use two strategies to work around this:
+    # - check after each time.sleep() if we want to sleep more
+    # - only sleep short intervals to make sure we don't "oversleep" by
+    #   much
+
+    # Generally for shorter sleeps more precision is required than for longer
+    # ones. We try not to oversleep for longer than 1/60th of the specified
+    # interval.
+    full_delta = target_time - datetime.datetime.now()
+    sleep_limit = full_delta / 60
+
+    # We are generally ok with an oversleep of one seconds and want to never
+    # oversleep for more than a minute.
+    oversleep_limit_low = datetime.timedelta(seconds=1)
+    oversleep_limit_high = datetime.timedelta(seconds=60)
+
+    if sleep_limit < oversleep_limit_low:
+        sleep_limit = min(full_delta, oversleep_limit_low)
+    if sleep_limit > oversleep_limit_high:
+        sleep_limit = oversleep_limit_high
+
+    # Loop until we reach out target time
+    while True:
+        delta = target_time - datetime.datetime.now()
+        if delta < datetime.timedelta(seconds=0):
+            break
+        if delta > sleep_limit:
+            delta = sleep_limit
+        time.sleep(delta.total_seconds())
 
 
 try:
@@ -148,11 +186,8 @@ if not args.foreground:
         sys.exit(0)
     os.setsid()
 
-import time
+sleep_until(notify_time)
 
-delay = notify_time - datetime.datetime.now()
-if delay > datetime.timedelta(seconds=0):
-    time.sleep(delay.total_seconds())
 try:
     subprocess.run(notify_command)
 except Exception as err:
